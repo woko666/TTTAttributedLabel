@@ -1441,7 +1441,9 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
         switch (result.resultType) {
             case NSTextCheckingTypeLink:
                 if ([self.delegate respondsToSelector:@selector(attributedLabel:didSelectLinkWithURL:)]) {
-                    [self.delegate attributedLabel:self didSelectLinkWithURL:result.URL];
+                    if ([result.URL isKindOfClass:[NSURL class]]) {
+                        [self.delegate attributedLabel:self didSelectLinkWithURL:result.URL];
+                    }
                     return;
                 }
                 break;
