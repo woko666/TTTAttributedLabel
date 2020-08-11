@@ -281,6 +281,8 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
     self.multipleTouchEnabled = NO;
 #endif
 
+    self.accessibilitySpellOutLinks = NO;
+    self.accessibilityLinksOnly = NO;
     self.textInsets = UIEdgeInsetsZero;
     self.lineHeightMultiple = 1.0f;
 
@@ -967,16 +969,16 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                     runBounds.size.width = width;
                 }
 
-				switch (superscriptStyle) {
-					case 1:
-						runBounds.origin.y -= runAscent * 0.47f;
-						break;
-					case -1:
-						runBounds.origin.y += runAscent * 0.25f;
-						break;
-					default:
-						break;
-				}
+                switch (superscriptStyle) {
+                    case 1:
+                        runBounds.origin.y -= runAscent * 0.47f;
+                        break;
+                    case -1:
+                        runBounds.origin.y += runAscent * 0.25f;
+                        break;
+                    default:
+                        break;
+                }
 
                 // Use text color, or default to black
                 id color = [attributes objectForKey:(id)kCTForegroundColorAttributeName];
@@ -1109,12 +1111,12 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
 
 // Fixes crash when loading from a UIStoryboard
 - (UIColor *)textColor {
-	UIColor *color = [super textColor];
-	if (!color) {
-		color = [UIColor blackColor];
-	}
+    UIColor *color = [super textColor];
+    if (!color) {
+        color = [UIColor blackColor];
+    }
 
-	return color;
+    return color;
 }
 
 - (void)setTextColor:(UIColor *)textColor {
@@ -1288,6 +1290,15 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
                 NSString *sourceText = [self.text isKindOfClass:[NSString class]] ? self.text : [(NSAttributedString *)self.text string];
 
                 NSString *accessibilityLabel = [sourceText substringWithRange:link.result.range];
+                if (self.accessibilitySpellOutLinks)
+                {
+                    NSMutableArray *array = [NSMutableArray array];
+                    for (int i = 0; i < [accessibilityLabel length]; i++) {
+                        NSString *ch = [accessibilityLabel substringWithRange:NSMakeRange(i, 1)];
+                        [array addObject:ch];
+                    }
+                    accessibilityLabel = [array componentsJoinedByString:@" "];
+                }
                 NSString *accessibilityValue = link.accessibilityValue;
 
                 if (accessibilityLabel) {
@@ -1305,15 +1316,18 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
                 }
             }
 
-            TTTAccessibilityElement *baseElement = [[TTTAccessibilityElement alloc] initWithAccessibilityContainer:self];
-            baseElement.accessibilityLabel = [super accessibilityLabel];
-            baseElement.accessibilityHint = [super accessibilityHint];
-            baseElement.accessibilityValue = [super accessibilityValue];
-            baseElement.boundingRect = self.bounds;
-            baseElement.superview = self;
-            baseElement.accessibilityTraits = [super accessibilityTraits];
+            if (!self.accessibilityLinksOnly)
+            {
+                TTTAccessibilityElement *baseElement = [[TTTAccessibilityElement alloc] initWithAccessibilityContainer:self];
+                baseElement.accessibilityLabel = [super accessibilityLabel];
+                baseElement.accessibilityHint = [super accessibilityHint];
+                baseElement.accessibilityValue = [super accessibilityValue];
+                baseElement.boundingRect = self.bounds;
+                baseElement.superview = self;
+                baseElement.accessibilityTraits = [super accessibilityTraits];
 
-            [mutableAccessibilityItems addObject:baseElement];
+                [mutableAccessibilityItems addObject:baseElement];
+            }
 
             self.accessibilityElements = [NSArray arrayWithArray:mutableAccessibilityItems];
         }
@@ -1788,7 +1802,7 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
 
 @end
 
-#pragma mark - 
+#pragma mark -
 
 static inline CGColorRef CGColorRefFromColor(id color) {
     return [color isKindOfClass:[UIColor class]] ? [color CGColor] : (__bridge CGColorRef)color;
